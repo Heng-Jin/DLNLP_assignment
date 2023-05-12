@@ -105,4 +105,4 @@ Confusion matrix between predictions and ground truth
 
 ### Analysis chart
 Results under each noise percentage
-<img src="https://github.com/Heng-Jin/DLNLP_assignment_23/blob/main/line_chart_2.png">
+<img src="https://github.com/Heng-Jin/DLNLP_assignment_23/blob/main/figure_save_place/line_chart_2.png">
