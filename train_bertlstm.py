@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from transformers import BertForSequenceClassification, BertTokenizer, BertConfig
+from models import BertLSTMClassifier
 
 import csv
 import numpy as np
@@ -14,15 +15,15 @@ import time
 from datasets import CSVDataset
 from utilities import plot_save, create_csv
 
-# hyperparemeter
+# hyperparameters
 # input_dim = 768
 # hidden_dim = 768
 # output_dim = 42
 # num_layers = 2
-learning_rate = 2e-4
+learning_rate = 2e-5
 batch_size = 64
 num_epochs = 15
-pretrain = False
+pretrain = True
 
 train_data_path = pathlib.Path.cwd()/ "Kaggle_news_train.csv"
 val_data_path = pathlib.Path.cwd()/ "Kaggle_news_test.csv"
@@ -34,10 +35,10 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 # logging set up
 parent_path = pathlib.Path.cwd()
 if pretrain == False:
-    model_save_path = parent_path / ("BERT_train_" + "epoch" + str(num_epochs) + "_lr" + str(learning_rate) + str(
+    model_save_path = parent_path / ("BERTLSTM_train_" + "epoch" + str(num_epochs) + "_lr" + str(learning_rate) + str(
         time.strftime("_%m_%d_%H_%M", time.localtime())))
 else:
-    model_save_path = parent_path / ("BERT_train_" + "epoch" + str(num_epochs) + "_lr" + str(learning_rate) + str(
+    model_save_path = parent_path / ("BERTLSTM_train_" + "epoch" + str(num_epochs) + "_lr" + str(learning_rate) + str(
         time.strftime("_%m_%d_%H_%M", time.localtime())))
 model_save_path.mkdir(exist_ok=True)  # all outputs of this running will be saved in this path
 log_path = model_save_path / ("BERT_train_" + str(time.strftime("%m_%d_%H_%M_%S", time.localtime())) + ".log")
@@ -80,22 +81,20 @@ def train(net, train_iter, valid_iter, criterion, optimizer, num_epochs):
             labels = batch['label'].to(device)
 
             optimizer.zero_grad()
-            outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
-            # loss = criterion(outputs, labels)
-            preds = torch.argmax(outputs.logits, dim=1)
-            loss = outputs.loss
+            outputs = net(input_ids, attention_mask=attention_mask)
+            loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
 
             train_loss_sum += loss.cpu().item()
-            train_acc_sum += (preds == labels).sum().cpu().item()
-            n += outputs.logits.shape[0]
+            train_acc_sum += (outputs.argmax(dim=1) == labels).sum().cpu().item()
+            n += outputs.shape[0]
             whole_batch_count += 1
             batch_count += 1
             temp_loss = train_loss_sum / whole_batch_count
             Loss_list.append(loss.item())
             logging.info('-epoch %d, batch_count %d, sample nums %d, loss temp %.4f, train acc %.3f, time %.1f sec,'
-                  % (epoch + 1, batch_count, n, loss.item(), train_acc_sum / n, time.time() - start))
+                         % (epoch + 1, batch_count, n, loss.item(), train_acc_sum / n, time.time() - start))
             print('-epoch %d, batch_count %d, sample nums %d, loss temp %.4f, train acc %.3f, time %.1f sec'
                   % (epoch + 1, batch_count, n, loss.item(), train_acc_sum / n, time.time() - start))
 
@@ -108,14 +107,13 @@ def train(net, train_iter, valid_iter, criterion, optimizer, num_epochs):
                 input_ids = batch['input_ids'].to(device)
                 attention_mask = batch['attention_mask'].to(device)
                 labels = batch['label'].to(device)
-                outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
-                preds = torch.argmax(outputs.logits, dim=1)
-                test_acc_sum += (preds == labels.to(device)).float().sum().cpu().item()
+                outputs = net(input_ids, attention_mask=attention_mask)
+                test_acc_sum += (outputs.argmax(dim=1) == labels.to(device)).float().sum().cpu().item()
                 temp = torch.stack(
-                    (preds, labels.to(device).int(), preds == labels.to(device)),
+                    (outputs.argmax(dim=1).int(), labels.to(device).int(), outputs.argmax(dim=1) == labels.to(device)),
                     1).tolist()
                 test_result_list.extend(temp)
-                n2 += outputs.logits.shape[0]
+                n2 += labels.shape[0]
 
         temp_acc_test = test_acc_sum / n2
         Accuracy_valid_list.append(temp_acc_test)
@@ -133,7 +131,7 @@ def train(net, train_iter, valid_iter, criterion, optimizer, num_epochs):
 
 # Load the tokenizer
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-# load dataset
+
 train_dataset = CSVDataset(train_data_path, tokenizer)
 val_dataset = CSVDataset(val_data_path, tokenizer)
 
@@ -145,7 +143,7 @@ if pretrain == False:
     config.init_weights = True
     model = BertForSequenceClassification(config)
 else:
-    model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=42)
+    model = BertLSTMClassifier(num_labels=42)
 
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)

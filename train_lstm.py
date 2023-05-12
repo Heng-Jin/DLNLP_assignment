@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from transformers import BertForSequenceClassification, BertTokenizer, BertConfig
 
 import csv
 import numpy as np
@@ -11,21 +10,21 @@ import pathlib
 import os
 import time
 
-from datasets import CSVDataset
+from models import LSTMClassifier
+from datasets import JSONDataset
 from utilities import plot_save, create_csv
 
-# hyperparemeter
-# input_dim = 768
-# hidden_dim = 768
-# output_dim = 42
-# num_layers = 2
-learning_rate = 2e-4
+# hypermeters
+input_dim = 768
+hidden_dim = 768
+output_dim = 42
+num_layers = 12
+learning_rate = 5e-5
 batch_size = 64
 num_epochs = 15
-pretrain = False
 
-train_data_path = pathlib.Path.cwd()/ "Kaggle_news_train.csv"
-val_data_path = pathlib.Path.cwd()/ "Kaggle_news_test.csv"
+train_data_path = pathlib.Path.cwd() / "Kaggle_news_train"
+val_data_path = pathlib.Path.cwd() / "Kaggle_news_test"
 
 # computing set up
 os.environ["CUDA_VISIBLE_DEVICES"] = "0" # GPU assigned
@@ -33,14 +32,9 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # logging set up
 parent_path = pathlib.Path.cwd()
-if pretrain == False:
-    model_save_path = parent_path / ("BERT_train_" + "epoch" + str(num_epochs) + "_lr" + str(learning_rate) + str(
-        time.strftime("_%m_%d_%H_%M", time.localtime())))
-else:
-    model_save_path = parent_path / ("BERT_train_" + "epoch" + str(num_epochs) + "_lr" + str(learning_rate) + str(
-        time.strftime("_%m_%d_%H_%M", time.localtime())))
+model_save_path = parent_path / ("LSTM_train_" + "epoch" + str(num_epochs) + "_lr" + str(learning_rate)  + str(time.strftime("_%m_%d_%H_%M", time.localtime())))
 model_save_path.mkdir(exist_ok=True)  # all outputs of this running will be saved in this path
-log_path = model_save_path / ("BERT_train_" + str(time.strftime("%m_%d_%H_%M_%S", time.localtime())) + ".log")
+log_path = model_save_path / ("LSTM_train_" + str(time.strftime("%m_%d_%H_%M_%S", time.localtime())) + ".log")
 logging.basicConfig(format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s',
                     level=logging.INFO,
                     filename=log_path,
@@ -75,21 +69,18 @@ def train(net, train_iter, valid_iter, criterion, optimizer, num_epochs):
         net.train()  # trainning mode
         train_loss_sum, train_acc_sum, n, batch_count = 0.0, 0.0, 0, 0
         for batch in train_iter:
-            input_ids = batch['input_ids'].to(device)
-            attention_mask = batch['attention_mask'].to(device)
-            labels = batch['label'].to(device)
+            embeddings = batch["embeddings"].to(device)
+            labels = batch["label"].to(device)
 
             optimizer.zero_grad()
-            outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
-            # loss = criterion(outputs, labels)
-            preds = torch.argmax(outputs.logits, dim=1)
-            loss = outputs.loss
+            outputs = net(embeddings)
+            loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
 
             train_loss_sum += loss.cpu().item()
-            train_acc_sum += (preds == labels).sum().cpu().item()
-            n += outputs.logits.shape[0]
+            train_acc_sum += (outputs.argmax(dim=1) == labels).sum().cpu().item()
+            n += outputs.shape[0]
             whole_batch_count += 1
             batch_count += 1
             temp_loss = train_loss_sum / whole_batch_count
@@ -105,17 +96,15 @@ def train(net, train_iter, valid_iter, criterion, optimizer, num_epochs):
             test_acc_sum, n2 = 0.0, 0
             test_result_list = []
             for batch in valid_iter:
-                input_ids = batch['input_ids'].to(device)
-                attention_mask = batch['attention_mask'].to(device)
-                labels = batch['label'].to(device)
-                outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
-                preds = torch.argmax(outputs.logits, dim=1)
-                test_acc_sum += (preds == labels.to(device)).float().sum().cpu().item()
+                embeddings = batch["embeddings"].to(device)
+                labels = batch["label"].to(device)
+                outputs = model(embeddings)
+                test_acc_sum += (outputs.argmax(dim=1) == labels.to(device)).float().sum().cpu().item()
                 temp = torch.stack(
-                    (preds, labels.to(device).int(), preds == labels.to(device)),
+                    (outputs.argmax(dim=1).int(), labels.to(device).int(), outputs.argmax(dim=1) == labels.to(device)),
                     1).tolist()
                 test_result_list.extend(temp)
-                n2 += outputs.logits.shape[0]
+                n2 += labels.shape[0]
 
         temp_acc_test = test_acc_sum / n2
         Accuracy_valid_list.append(temp_acc_test)
@@ -131,22 +120,15 @@ def train(net, train_iter, valid_iter, criterion, optimizer, num_epochs):
                    model_save_path / ("epoch_" + str(epoch) + "_lr_" + str(learning_rate) + "_" + str(
                        time.strftime("%m_%d_%H_%M_%S", time.localtime())) + ".pth"))
 
-# Load the tokenizer
-tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-# load dataset
-train_dataset = CSVDataset(train_data_path, tokenizer)
-val_dataset = CSVDataset(val_data_path, tokenizer)
+
+
+train_dataset = JSONDataset(train_data_path)
+val_dataset = JSONDataset(val_data_path)
 
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
-if pretrain == False:
-    config = BertConfig.from_pretrained("bert-base-uncased", num_labels=42)
-    config.init_weights = True
-    model = BertForSequenceClassification(config)
-else:
-    model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=42)
-
+model = LSTMClassifier(input_dim, hidden_dim, output_dim, num_layers)
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 train(model, train_loader, val_loader, criterion, optimizer, num_epochs=num_epochs)

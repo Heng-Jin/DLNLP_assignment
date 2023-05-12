@@ -25,7 +25,7 @@ batch_size = 64
 num_epochs = 15
 pretrain = True
 
-train_data_path = pathlib.Path.cwd()/ "Kaggle_news_train.csv"
+train_data_path = pathlib.Path.cwd()/ "Kaggle_news_train_60.csv"
 val_data_path = pathlib.Path.cwd()/ "Kaggle_news_test.csv"
 
 # computing set up
@@ -35,10 +35,10 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 # logging set up
 parent_path = pathlib.Path.cwd()
 if pretrain == False:
-    model_save_path = parent_path / ("BERTLSTM_train_" + "epoch" + str(num_epochs) + "_lr" + str(learning_rate) + str(
+    model_save_path = parent_path / ("BERTLSTM_train_noisy_60" + "epoch" + str(num_epochs) + "_lr" + str(learning_rate) + str(
         time.strftime("_%m_%d_%H_%M", time.localtime())))
 else:
-    model_save_path = parent_path / ("BERTLSTM_train_" + "epoch" + str(num_epochs) + "_lr" + str(learning_rate) + str(
+    model_save_path = parent_path / ("BERTLSTM_train_noisy_60" + "epoch" + str(num_epochs) + "_lr" + str(learning_rate) + str(
         time.strftime("_%m_%d_%H_%M", time.localtime())))
 model_save_path.mkdir(exist_ok=True)  # all outputs of this running will be saved in this path
 log_path = model_save_path / ("BERT_train_" + str(time.strftime("%m_%d_%H_%M_%S", time.localtime())) + ".log")

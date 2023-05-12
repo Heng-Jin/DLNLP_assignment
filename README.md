@@ -40,26 +40,61 @@ For pytorch, please check official website to install it correctly.
 
 Before the training for LSTMs, run embeding.py to generate token embeddings for LSTM input, which are the same token embeddings used by BERT.
 
-To run the training code of LSTM in original dataset: python main.py
+To generate the noisy dataet: python add_noise.py
 
-To run the training code of BERT in original dataset: python train_bert.py
+To run the training code of LSTM: python train_lstm_XXX.py
+
+To run the training code of BERT: python train_bert_XXX.py
+
+To run the training code of BERT+LSTM: python train_bertlstm_XXX.py
 
 
 
-### Program run instruction
-The main.py/train_modelname_suffix.py defines the training and validation pipeline of the model. 
+
+### Program content
+- The main.py/train_modelname_suffix.py defines the training and validation pipeline of the model. 
 The inference of the validation dataset will be implemented after each 
 training epoch. The model will be saved after each epoch as well. 
 All the outputs of each training will be saved into a separate folder.
 
-&emsp; main.py : TrainLSTM in original dataset
+&emsp; main.py/train_bert.py : Train bert in original dataset
 
-The models.py defines the model structure of each model.
+&emsp; train_bert_5class.py : Train bert in 5-class dataset
 
-The dataset.py defines the Class Dataset to offer data pair for train and validation.
+&emsp; train_bert_noisy.py : Train bert in noisy dataset
 
-The embeding.py is 
+&emsp; train_lstm.py : Train lstm in original dataset
 
-### Results Display
+&emsp; train_lstm_5class.py : Train lstm in 5-class dataset
+
+&emsp; train_lstm_noisy.py : Train lstm in noisy dataset
+
+&emsp; train_bertlstm.py : Train bert+lstm in original dataset
+
+&emsp; train_bertlstm_noisy.py : Train bert+lstm in noisy dataset
+
+- models.py defines the model structure of each model.
+
+- dataset.py defines the Class Dataset to offer data pair for train and validation.
+
+- utilities.py defines supplementary function used
+
+- embeding.py generates word embedding from Huggingface BertTokenizer and BertModel.
+
+- data_shrinking.ipynb generates 5 class dataset.
+
+- add_noise.py generates noisy label dataset.
+
+- visualization generates plot figures.
+
+- max_acc_finder.py finds maximum accuracy epoch in trained model folders. 
+
+- Kaggle_news_train: cleaned original train dataset
+
+- Kaggle_news_test: cleaned original test dataset
+
+- Kaggle_news_train: label index map
+
+[//]: # (### Results Display)
 
 
