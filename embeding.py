@@ -5,7 +5,7 @@ import torch
 from torch.utils.data import Dataset,DataLoader
 from transformers import BertTokenizer, BertModel
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "9"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # 1. 读取 CSV 文件

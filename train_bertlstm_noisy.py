@@ -15,10 +15,10 @@ import time
 from datasets import CSVDataset
 from utilities import plot_save, create_csv
 
-# 超参数
-# input_dim = 768  # 根据实际任务调整
+# hyperparameters
+# input_dim = 768  
 # hidden_dim = 768
-# output_dim = 42  # 根据实际任务调整
+# output_dim = 42 
 # num_layers = 2
 learning_rate = 2e-5
 batch_size = 64
@@ -29,7 +29,7 @@ train_data_path = pathlib.Path.cwd()/ "Kaggle_news_train.csv"
 val_data_path = pathlib.Path.cwd()/ "Kaggle_news_test.csv"
 
 # computing set up
-os.environ["CUDA_VISIBLE_DEVICES"] = "1" # GPU assigned
+os.environ["CUDA_VISIBLE_DEVICES"] = "0" # GPU assigned
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # logging set up
@@ -131,15 +131,13 @@ def train(net, train_iter, valid_iter, criterion, optimizer, num_epochs):
 
 # Load the tokenizer
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-# 数据预处理，加载数据集
-# 请根据实际任务加载并预处理数据
+
 train_dataset = CSVDataset(train_data_path, tokenizer)
 val_dataset = CSVDataset(val_data_path, tokenizer)
 
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
-# 创建模型、损失函数和优化器
 if pretrain == False:
     config = BertConfig.from_pretrained("bert-base-uncased", num_labels=42)
     config.init_weights = True

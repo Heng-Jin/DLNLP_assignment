@@ -14,10 +14,10 @@ from models import LSTMClassifier
 from datasets import CSVJSONDataset
 from utilities import plot_save, create_csv
 
-# 超参数
-input_dim = 768  # 根据实际任务调整
+# hyperparameters
+input_dim = 768  
 hidden_dim = 768
-output_dim = 42  # 根据实际任务调整
+output_dim = 42  
 num_layers = 12
 learning_rate = 1e-5
 batch_size = 64
@@ -123,15 +123,12 @@ def train(net, train_iter, valid_iter, criterion, optimizer, num_epochs):
                        time.strftime("%m_%d_%H_%M_%S", time.localtime())) + ".pth"))
 
 
-# 数据预处理，加载数据集
-# 请根据实际任务加载并预处理数据
 train_dataset = CSVJSONDataset(train_data_path, train_data_folder)
 val_dataset = CSVJSONDataset(val_data_path, val_data_folder)
 
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
-# 创建模型、损失函数和优化器
 model = LSTMClassifier(input_dim, hidden_dim, output_dim, num_layers)
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)

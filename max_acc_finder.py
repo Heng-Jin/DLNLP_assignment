@@ -3,8 +3,8 @@ import csv
 from matplotlib import pyplot as plt
 
 '''
-This python script calculate the max PSNR of the epoch in each folder.
-The Curves of PNSR and Loss will be generated and saved in /figure_save_place/
+This python script calculate the max acc of the epoch in each folder.
+The Curves of acc and Loss will be generated and saved in /figure_save_place/
 '''
 
 folder_path = os.getcwd()
