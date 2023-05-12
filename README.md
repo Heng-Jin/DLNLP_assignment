@@ -95,6 +95,14 @@ All the outputs of each training will be saved into a separate folder.
 
 - Kaggle_news_train: label index map
 
-[//]: # (### Results Display)
+### Results Display
+Train bert 15 epochs, LR 2e-5, original dataset
+Test acc & Loss value
+<img src="https://github.com/Heng-Jin/DLNLP_assignment_23/blob/main/figure_save_place/BERT_train_epoch15_lr2e-05_05_06_02_03_acc_loss.png">
 
+Confusion matrix between predictions and ground truth
+<img src="https://github.com/Heng-Jin/DLNLP_assignment_23/blob/main/figure_save_place/bert_confusion.png">
 
+### Analysis chart
+Results under each noise percentage
+<img src="https://github.com/Heng-Jin/DLNLP_assignment_23/blob/main/line_chart_2.png">
